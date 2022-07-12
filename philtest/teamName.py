@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import scipy.stats as stats
 from differencing import differenced
 df = pd.read_csv('prices.txt', delim_whitespace=True, header = None)
 
@@ -13,12 +14,7 @@ for i in range(len(df.columns)):
     for j in range(len(df.columns)):
         store_b = df.iloc[:, j].values
         if i != j:
-            mean_a = np.mean(store_a)
-            mean_b = np.mean(store_b)
-            SS_ab = np.sum(store_b * store_a) - len(store_a) * mean_a * mean_b
-            SS_aa = np.sum(store_a * store_a) - len(store_a) * mean_a * mean_a
-
-            b_1 = SS_ab / SS_aa
+            b_1 = stats.linregress(store_a, store_b).slope
             if (b_1 >= 0.96 or b_1 <= -0.96):
                 regression_gradients.append((b_1, i, j))
                 if i in unregressed:
@@ -36,7 +32,7 @@ currentPos = np.zeros(nInst)
 def getMyPosition (prcSoFar):
     global currentPos
     global regression_gradients
-
+    currentPos = differenced(prcSoFar, currentPos)
     
     for regress in regression_gradients:
         scalar = regress[0]
