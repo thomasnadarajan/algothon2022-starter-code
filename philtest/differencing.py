@@ -6,7 +6,6 @@ df1 = pd.read_csv('prices.txt', delim_whitespace=True, header = None)
 
 pool = []
 indexes = []
-trades_stack = []
 used_starts = set()
 while len(used_starts) < len(df1.columns):
     if len(pool) < 28:
@@ -16,11 +15,7 @@ while len(used_starts) < len(df1.columns):
             indexes.append(np.array(pool))
             pool = []
         store = df1.iloc[:, i].values
-        '''
-        new_store = list()
-        for j in range(1, len(store)):
-            new_store.append(((store[j] - store[j-1])/store[j-1]) * 100)
-        '''
+
         if pool == [] and i not in used_starts:
             #pool.append(store)
             pool.append(i)
@@ -92,9 +87,8 @@ for ind in range(len(indexes)):
             regressions[indexes[ind][i]][ind] = stats.linregress(new_store, normalised_indexes[ind]).slope
         
     
-def differenced(prcSoFar, currentPos):
+def differenced(prcSoFar, currentPos, trades_stack):
     global regressions
-    global trades_stack
     for i in range(prcSoFar.shape[0]):
         '''
         if len(trades_stack[i]) > 0:
@@ -121,8 +115,7 @@ def differenced(prcSoFar, currentPos):
                         # volume test 2
                         
                         
-                        #trade_b = -1000 * (store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2]) / (1.2 * scalar)
-                        trade_b = -1000
+                        trade_b = -1500 * (store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2]) / (1 * scalar)
                         trade_a = (trade_b * -1) / scalar
                         #trade_b = round(trade_b/store_b[len(store_b) - 1], 0)
                         trade_a = round(trade_a/store_a[len(store_a) - 1], 0)
@@ -130,6 +123,8 @@ def differenced(prcSoFar, currentPos):
                             if k != i:
                                 prices_k = prcSoFar[k,:]
                                 currentPos[k] = round((trade_b / (len(indexes[j]) - 1)) / prices_k[-1], 0)
+                                trades_stack.append((trade_b, len(store_b)))
+                        trades_stack[i].append((trade_a, len(store_a)))
                     elif store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2] < 0.85 * scalar:
                         # volume test 1
                         '''
@@ -137,8 +132,8 @@ def differenced(prcSoFar, currentPos):
                         trade_b = round(1000/store_b[len(store_b) - 1], 0)
                         '''
                         # volume test 2
-                        #trade_b = 10 * (store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2]) / (1.2 * scalar)
-                        trade_b = 1000
+                        trade_b = 1500 * (store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2]) / (1 * scalar)
+                        #trade_b = 1000
                         trade_a = (trade_b * -1) / scalar
                         #trade_b = round(trade_b/store_b[len(store_b) - 1], 0)
                         trade_a = round(trade_a/store_a[len(store_a) - 1], 0)
@@ -146,13 +141,13 @@ def differenced(prcSoFar, currentPos):
                             if k != i:
                                 prices_k = prcSoFar[k,:]
                                 currentPos[k] = round((trade_b / (len(indexes[j]) - 1)) / prices_k[-1], 0)
-                    '''
-                    trades_stack[i].append((trade_a, len(store_a)))
-                    trades_stack[j].append((trade_b, len(store_b)))
-                    '''
+                                trades_stack.append((trade_b, len(store_b)))
+                    
+                        trades_stack[i].append((trade_a, len(store_a)))
+                    
                     currentPos[i] += trade_a
 
                 
             # Build your function body here
         
-    return currentPos
+    return (currentPos, trades_stack)

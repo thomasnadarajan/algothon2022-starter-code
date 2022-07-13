@@ -32,8 +32,18 @@ currentPos = np.zeros(nInst)
 def getMyPosition (prcSoFar):
     global currentPos
     global regression_gradients
-    currentPos = differenced(prcSoFar, currentPos)
-    
+    global trades_stack
+    currentPos, trades_stack = differenced(prcSoFar, currentPos, trades_stack)
+    for i in range(prcSoFar.shape[0]):
+        prcStore = prcSoFar[i, :]
+        if len(trades_stack[i]) > 0:
+            marked = []
+            for trade in trades_stack[i]:
+                if len(prcStore) == trade[1] + 50:
+                    currentPos[i] += trade[0] * -1
+                    marked.append(trade)
+            for mark in marked:
+                trades_stack[i].remove(mark)
     for regress in regression_gradients:
         scalar = regress[0]
         i = regress[1]
