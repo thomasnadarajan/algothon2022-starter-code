@@ -3,7 +3,7 @@ import pandas as pd
 import scipy.stats as stats
 
 df1 = pd.read_csv('prices.txt', delim_whitespace=True, header = None)
-interval = 100
+interval = 300
 code = 0
 indexes = {}
 normalised_indexes = {}
@@ -72,7 +72,7 @@ def calculate_regressions():
 calculate_indexes()
 calculate_regressions()
 
-def differenced(prcSoFar, currentPos, trades_stack):
+def indexing(prcSoFar, currentPos, trades_stack):
     global regressions
     global interval
     if interval == prcSoFar.shape[1]:
@@ -80,16 +80,6 @@ def differenced(prcSoFar, currentPos, trades_stack):
         calculate_regressions()
         interval += 100
     for i in range(prcSoFar.shape[0]):
-        '''
-        if len(trades_stack[i]) > 0:
-            marked = []
-            for trade in trades_stack[i]:
-                if len(store) == trade[1] + 4:
-                    currentPos[i] += trade[0] * -1
-                    marked.append(trade)
-            for mark in marked:
-                trades_stack[i].remove(mark)
-        '''
         store_a = prcSoFar[i,:]
         if len(store_a) > 1:
             for index in indexes:
@@ -97,43 +87,29 @@ def differenced(prcSoFar, currentPos, trades_stack):
                     store_b = normalised_indexes[index]
                     scalar = regressions[i][index]
                     if store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1]- store_a[len(store_a) - 2] > 1.15 * scalar:
-                        # volume test 1
-                        '''
-                        trade_a = round((1000/scalar)/store_b[len(store_b) - 1], 0)
-                        trade_b = round(-1000/store_b[len(store_b) - 1], 0)
-                        '''
                         # volume test 2
                         
-
-                        trade_b = -1500 * (store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2]) / (1 * scalar)
+                        trade_b = -1000 * (store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2]) / (1 * scalar)
                         trade_a = (trade_b * -1) / scalar
-                        #trade_b = round(trade_b/store_b[len(store_b) - 1], 0)
                         trade_a = round(trade_a/store_a[len(store_a) - 1], 0)
                         for k in indexes[index]:
                             if k != i:
                                 prices_k = prcSoFar[k,:]
                                 currentPos[k] = round((trade_b / (len(indexes[index]) - 1)) / prices_k[-1], 0)
-                                #trades_stack[k].append((trade_b, len(store_a)))
+                                trades_stack[k].append((trade_b, len(store_a), 'index'))
 
-                        #trades_stack[i].append((trade_a, len(store_a)))
+                        trades_stack[i].append((trade_a, len(store_a)))
                     elif store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2] < 0.85 * scalar:
-                        # volume test 1
-                        '''
-                        trade_a = round((-1000/scalar)/store_b[len(store_b) - 1], 0)
-                        trade_b = round(1000/store_b[len(store_b) - 1], 0)
-                        '''
                         # volume test 2
-                        trade_b = 1500 * (store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2]) / (1 * scalar)
-                        #trade_b = 1000
+                        trade_b = 1000 * (store_b[len(store_b) - 1] - store_b[len(store_b) - 2] / store_a[len(store_a) - 1] - store_a[len(store_a) - 2]) / (1 * scalar)
                         trade_a = (trade_b * -1) / scalar
-                        #trade_b = round(trade_b/store_b[len(store_b) - 1], 0)
                         trade_a = round(trade_a/store_a[len(store_a) - 1], 0)
                         for k in indexes[index]:
                             if k != i:
                                 prices_k = prcSoFar[k,:]
                                 currentPos[k] = round((trade_b / (len(indexes[index]) - 1)) / prices_k[-1], 0)
-                                trades_stack[k].append((trade_b, len(store_a)))
-                        #trades_stack[i].append((trade_a, len(store_a)))
+                                trades_stack[k].append((trade_b, len(store_a), 'index'))
+                        trades_stack[i].append((trade_a, len(store_a), 'index'))
                     
                     currentPos[i] += trade_a
 
