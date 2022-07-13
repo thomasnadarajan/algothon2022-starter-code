@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import time
-import matplotlib.pyplot as plt
 from teamName import getMyPosition as getPosition
 
 nInst = 0

@@ -2,28 +2,27 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from differencing import differenced
+from momentum import momentumChangeDetect
+interval = 100
 df = pd.read_csv('prices.txt', delim_whitespace=True, header = None)
-
-model_data = []
-regression_gradients = []
 trades_stack = []
-unregressed = []
+regression_gradients = []
 for i in range(len(df.columns)):
     trades_stack.append([])
-    store_a = df.iloc[:, i].values
-    for j in range(len(df.columns)):
-        store_b = df.iloc[:, j].values
-        if i != j:
-            b_1 = stats.linregress(store_a, store_b).slope
-            if (b_1 >= 0.96 or b_1 <= -0.96):
-                regression_gradients.append((b_1, i, j))
-                if i in unregressed:
-                    unregressed.remove(i)
-                if j in unregressed:
-                    unregressed.remove(j)
-            else:
-                unregressed.append(i)
-                unregressed.append(j)
+def calculate_regressions(additional = None):
+    global regression_gradients
+    if additional != None:
+        pd.concat([df, pd.DataFrame(additional)], axis=0, ignore_index=True)
+        regression_gradients = []
+    for i in range(len(df.columns)):
+        store_a = df.iloc[:, i].values
+        for j in range(len(df.columns)):
+            store_b = df.iloc[:, j].values
+            if i != j:
+                b_1 = stats.linregress(store_a, store_b).slope
+                if (b_1 >= 0.96 or b_1 <= -0.96):
+                    regression_gradients.append((b_1, i, j))
+calculate_regressions()
 
 nInst=100
 currentPos = np.zeros(nInst)
@@ -33,17 +32,25 @@ def getMyPosition (prcSoFar):
     global currentPos
     global regression_gradients
     global trades_stack
+    global interval
     currentPos, trades_stack = differenced(prcSoFar, currentPos, trades_stack)
-    for i in range(prcSoFar.shape[0]):
-        prcStore = prcSoFar[i, :]
+    return currentPos
+    #currentPos, trades_stack = momentumChangeDetect(prcSoFar, currentPos, trades_stack)
+    #return currentPos
+    if interval == prcSoFar.shape[1]:
+        calculate_regressions()
+        interval += 100
+    '''
+    for i in range(len(trades_stack)):
         if len(trades_stack[i]) > 0:
             marked = []
             for trade in trades_stack[i]:
-                if len(prcStore) == trade[1] + 50:
+                if prcSoFar.shape[1] == trade[1] + 50:
                     currentPos[i] += trade[0] * -1
                     marked.append(trade)
             for mark in marked:
                 trades_stack[i].remove(mark)
+    '''
     for regress in regression_gradients:
         scalar = regress[0]
         i = regress[1]
